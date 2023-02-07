@@ -1,4 +1,6 @@
-# UOCIS322 - Project 3 #
+UOCIS322 - Project 3 #
+Name: Austin Warren
+Email: awarren3@uoregon.edu
 
 You'll learn about JQuery and asynchronous requests in this project.
 
