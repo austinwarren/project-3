@@ -8,6 +8,7 @@ import flask
 import logging
 
 # Our modules
+from flask import request
 from src.letterbag import LetterBag
 from src.vocab import Vocab
 from src.jumble import jumbled
@@ -79,7 +80,7 @@ def success():
 #   a JSON request handler
 #######################
 
-@app.route("/_check", methods=["POST"])
+@app.route("/_check", methods=["GET"])
 def check():
     """
     User has submitted the form with a word ('attempt')
@@ -92,35 +93,37 @@ def check():
     app.logger.debug("Entering check")
 
     # The data we need, from form and from cookie
-    text = flask.request.form["attempt"]
+    text = request.args.get("text", type=str)
     jumble = flask.session["jumble"]
     matches = flask.session.get("matches", [])  # Default to empty list
 
     # Is it good?
     in_jumble = LetterBag(jumble).contains(text)
     matched = WORDS.has(text)
+    rslt = ""
 
     # Respond appropriately
     if matched and in_jumble and not (text in matches):
         # Cool, they found a new word
         matches.append(text)
         flask.session["matches"] = matches
+        # Choose page:  Solved enough, or keep going?
+        if len(matches) >= flask.session["target_count"]:
+            window.location.href("/success")
+            rslt = {"check": "success"}
+            flask.jsonify(result=rslt)
     elif text in matches:
-        flask.flash("You already found {}".format(text))
+        rslt2 = {"matches": "matched"}
+        return flask.jsonify(result=rslt2)
     elif not matched:
-        flask.flash("{} isn't in the list of words".format(text))
+        rslt3 = {"matches": "{} isn't in the list of words".format(text)}
+        return flask.jsonify(result=rslt3)
     elif not in_jumble:
-        flask.flash(
-            '"{}" can\'t be made from the letters {}'.format(text, jumble))
+        rslt4 = {"in_jumble": "matches"}
+        return flask.jsonify(result=rslt4)
     else:
         app.logger.debug("This case shouldn't happen!")
         assert False  # Raises AssertionError
-
-    # Choose page:  Solved enough, or keep going?
-    if len(matches) >= flask.session["target_count"]:
-       return flask.redirect(flask.url_for("success"))
-    else:
-       return flask.redirect(flask.url_for("keep_going"))
 
 
 ###############
